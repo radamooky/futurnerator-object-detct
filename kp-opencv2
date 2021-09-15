@@ -5,10 +5,11 @@ def f():
 
 cam = cv2.VideoCapture(0)
 cv2.namedWindow("Parameters")
-cv2.createTrackbar("Min", "Parameters", 290, 1000,f)
-cv2.createTrackbar("Max", "Parameters", 680, 1000,f)
-cv2.createTrackbar("Area", "Parameters", 20, 4000,f)
-cv2.createTrackbar("Len", "Parameters", 80, 100,f)
+cv2.resizeWindow("Parameters",400,200)
+cv2.createTrackbar("Min", "Parameters", 200, 1000,f)
+cv2.createTrackbar("Max", "Parameters", 130, 1000,f)
+cv2.createTrackbar("Area", "Parameters", 0, 4000,f)
+cv2.createTrackbar("Len", "Parameters", 50, 100,f)
 
 '''
 objectsList = []
@@ -20,7 +21,7 @@ weights = 'frozen_inference_graph.pb'
 
 model = cv2.dnn_DetectionModel(weights, config)
 
-#default parameters (copy ma bab yung mai kao jai war kue arai bang)
+#default parameters (copy ma bab mai kao jai war kue arai bang)
 model.setInputSize(320,320)
 model.setInputScale(1.0/127.5)
 model.setInputMean((127.5,127.5,127.5))
@@ -30,6 +31,8 @@ model.setInputSwapRB(True)
 while True:
     _ , img = cam.read()
     imgray= cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    #below is for if you want to select a specific region (ROI)
+    #imgray=imgray[y1:y2, x1:x2]
 
     min_area  = cv2.getTrackbarPos("Area", "Parameters")
     len = cv2.getTrackbarPos("Len", "Parameters")
@@ -47,21 +50,21 @@ while True:
             cv2.putText(img,objectsList[id-1],(bbox[0]+20,bbox[1]+30),cv2.FONT_HERSHEY_PLAIN, 1, (255,0,0),2)
     '''
 
-    contours, hierarchy = cv2.findContours(imedges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    contours, hierarchy = cv2.findContours(imedges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)[-2:]
 
 
     x= 0
 
     for cont in contours:
-        x+=1
         area = cv2.contourArea(cont)
         if area > min_area:
+            x += 1
             cv2.drawContours(imgray, cont, -1, (0,0,255), 3)
 
     if x > len:
-        print("there's water")
+        print("there's water     (x=" + str(x) + ")")
     else:
-        print("empty")
+        print("empty             (x=" + str(x) + ")")
 
     #cv2.imshow('WebCam',img)
     cv2.imshow('gray', imgray)
