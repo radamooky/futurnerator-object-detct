@@ -69,4 +69,5 @@ while True:
     #cv2.imshow('WebCam',img)
     cv2.imshow('gray', imgray)
     cv2.imshow('edges',imedges)
-    cv2.waitKey(1)
+    #if cv2.waitKey(1) & 0xFF==ord('q'):
+        break
