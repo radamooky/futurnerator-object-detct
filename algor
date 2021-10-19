@@ -43,7 +43,6 @@ GPIO.setmode(GPIO.BCM)
 GPIO.setup(18, GPIO.OUT) #GPIO for LED
 GPIO.setup(17, GPIO.OUT) #GPIO for servo
 button = Button(26) #GPIO for button
-servo1 = GPIO.PWM(17, 50) #Note: 11 is GPIO, 50 is 50Hz Pulse
 data = []
 
 while True:
@@ -87,6 +86,7 @@ while True:
                 
         yeswater = 0
         t_end = time.time() + 5
+        servo1 = GPIO.PWM(17, 50) #Note: 11 is GPIO, 50 is 50Hz Pulse
         
         while time.time() < t_end:
             
@@ -107,11 +107,11 @@ while True:
             SetAngle(0)
             GPIO.output(18, False)
             servo1.stop()
-            GPIO.cleanup()
         continue
     if cv2.waitKey(1) & 0xFF==ord('q'):
         print('terminating the program')
         break
-    
+
+GPIO.cleanup()
 print(data)
 quit()
