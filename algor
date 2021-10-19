@@ -1,0 +1,117 @@
+import cv2
+import RPi.GPIO as GPIO
+from gpiozero import Button
+import time
+
+def f():
+    pass
+
+def SetAngle(angle):
+    duty = angle/18 + 2
+    GPIO.output(17, True)
+    servo1.ChangeDutyCycle(duty)
+    time.sleep(1)
+    GPIO.output(17, False)
+    servo1.ChangeDutyCycle(0)
+
+cam = cv2.VideoCapture(0)
+cv2.namedWindow("Parameters")
+cv2.resizeWindow("Parameters",400,200)
+cv2.createTrackbar("Min", "Parameters", 200, 1000,f)
+cv2.createTrackbar("Max", "Parameters", 130, 1000,f)
+cv2.createTrackbar("Area", "Parameters", 0, 4000,f)
+cv2.createTrackbar("Len", "Parameters", 50, 100,f)
+
+'''
+objectsList = []
+with open('coco.names.txt', 'rt') as x:
+    objectsList = x.read().split('\n')
+
+config = 'ssd_mobilenet_v3_large_coco_2020_01_14.pbtxt.txt'
+weights = 'frozen_inference_graph.pb'
+
+model = cv2.dnn_DetectionModel(weights, config)
+
+#default parameters (copy ma bab mai kao jai war kue arai bang)
+model.setInputSize(320,320)
+model.setInputScale(1.0/127.5)
+model.setInputMean((127.5,127.5,127.5))
+model.setInputSwapRB(True)
+'''
+
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(18, GPIO.OUT) #GPIO for LED
+GPIO.setup(17, GPIO.OUT) #GPIO for servo
+button = Button(26) #GPIO for button
+servo1 = GPIO.PWM(17, 50) #Note: 11 is GPIO, 50 is 50Hz Pulse
+data = []
+
+while True:
+    if button.is_pressed is True:
+        print("Button pressed")
+        _ , img = cam.read()
+        imgray= cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        #below is for if you want to select a specific region (ROI)
+        #imgray=imgray[y1:y2, x1:x2]
+
+        min_area  = cv2.getTrackbarPos("Area", "Parameters")
+        len = cv2.getTrackbarPos("Len", "Parameters")
+        min = cv2.getTrackbarPos("Min", "Parameters")
+        max = cv2.getTrackbarPos("Max", "Parameters")
+        imedges=cv2.Canny(imgray,min,max)
+
+        '''
+        ids, confids, bboxs = model.detect(img,confThreshold=0.5)
+        print(ids,bboxs)
+
+        if len(ids) != 0:
+            for id, confid, bbox in zip(ids.flatten(),confids.flatten(),bboxs):
+                cv2.rectangle(img, bbox, color=(255,0,0),thickness=2)
+                cv2.putText(img,objectsList[id-1],(bbox[0]+20,bbox[1]+30),cv2.FONT_HERSHEY_PLAIN, 1, (255,0,0),2)
+        '''
+
+        contours, hierarchy = cv2.findContours(imedges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)[-2:]
+
+
+        x= 0
+
+        for cont in contours:
+            area = cv2.contourArea(cont)
+            if area > min_area:
+                x += 1
+                cv2.drawContours(imgray, cont, -1, (0,0,255), 3)
+                
+        #cv2.imshow('WebCam',img)
+        #cv2.imshow('gray', imgray)
+        #cv2.imshow('edges',imedges)
+                
+        yeswater = 0
+        t_end = time.time() + 5
+        
+        while time.time() < t_end:
+            
+            if x > len:
+                yeswater += 1
+                print("there's water     (x=" + str(x) + ")")
+            else:
+                print("empty             (x=" + str(x) + ")")
+        
+        if yeswater >= 50: # 50 Check default
+            data.append(0)
+        if yeswater <= 20: # 20 Check default
+            data.append(1)
+            GPIO.output(18, True)
+            servo1.start(0)
+            SetAngle(90)
+            time.sleep(2)
+            SetAngle(0)
+            GPIO.output(18, False)
+            servo1.stop()
+            GPIO.cleanup()
+        continue
+    if cv2.waitKey(1) & 0xFF==ord('q'):
+        print('terminating the program')
+        break
+    
+print(data)
+quit()
